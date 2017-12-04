@@ -94,7 +94,13 @@ public class LeafLoadingView extends View {
 
     //进度
     private float mProgress;
+    //设置新进度时的旧进度
+    private float mOldProgress;
+    //设置新进度时的时间
+    private long mProgressSetTime;
+    //进度过渡动画的绘制完成时间
     private float mIntervalDrawTime = 200;
+    //进度完成时显示的文字
     private String mTextComplete = "100%";
 
     //progress 绘制录像
@@ -259,8 +265,6 @@ public class LeafLoadingView extends View {
                 canvas.drawBitmap(mLeafBitmap, matrix, mBitmapPaint);
                 canvas.restore();
 
-            } else {
-                continue;
             }
 
         }
@@ -269,7 +273,7 @@ public class LeafLoadingView extends View {
 
     //绘制橙色滚动条
     private void drawLoadingProgress(Canvas canvas) {
-        int width = (int) (mProgress / 100f * mBgWidth);
+        int width = generateProgressWidth();
         PictureDrawable proPd = new PictureDrawable(mProgressPicture);
         proPd.setBounds(0, 0, width, mBgHeight);
         proPd.draw(canvas);
@@ -306,6 +310,20 @@ public class LeafLoadingView extends View {
         }
 
         canvas.restore();
+    }
+
+    //根据属性计算应绘制的进度条长度
+    private int generateProgressWidth() {
+        int result = 0;
+        long deltaT = System.currentTimeMillis() - mProgressSetTime;
+
+        if (deltaT > 0 && mIntervalDrawTime > deltaT) {
+            float deltaWidth = (mProgress-mOldProgress) / mIntervalDrawTime * deltaT;
+            result = (int) ((mOldProgress + deltaWidth) / 100f * mBgWidth);
+        } else {
+            result = (int) (mProgress / 100f * mBgWidth);
+        }
+        return result;
     }
 
     private void generateLeafRotation(Leaf leaf, long currentTime) {
@@ -346,7 +364,7 @@ public class LeafLoadingView extends View {
         return (int) (A * Math.sin(w * leaf.x + leaf.Q));
     }
 
-    static class Leaf {
+    private static class Leaf {
         //y = A Sin(w * x + Q) + k
 
         // 叶子振幅 计算公式为：AmplitudeType(类型) * ApmlitudeDiff(振幅差值) + 默认值
@@ -377,10 +395,10 @@ public class LeafLoadingView extends View {
         private int rotateDirection;
     }
 
-    static class LeafFactory {
-        public static final int DEFAULT_SIZE = 7;
+    private static class LeafFactory {
+        private static final int DEFAULT_SIZE = 7;
 
-        public static Leaf generateLeaf() {
+        private static Leaf generateLeaf() {
             Random random = new Random();
             Leaf leaf = new Leaf();
 
@@ -401,7 +419,7 @@ public class LeafLoadingView extends View {
             return leaf;
         }
 
-        public static List<Leaf> generateLeaves(int size) {
+        private static List<Leaf> generateLeaves(int size) {
             List<Leaf> leaves = new ArrayList<>();
             for (int i = 0; i < size; i++) {
                 Leaf leaf = generateLeaf();
@@ -410,13 +428,15 @@ public class LeafLoadingView extends View {
             return leaves;
         }
 
-        public static List<Leaf> generateLeaves() {
+        private static List<Leaf> generateLeaves() {
             return generateLeaves(DEFAULT_SIZE);
         }
     }
 
     public void setProgress(float progress){
+        this.mOldProgress = this.mProgress;
         this.mProgress = progress;
+        this.mProgressSetTime = System.currentTimeMillis();
         postInvalidate();
     }
 
