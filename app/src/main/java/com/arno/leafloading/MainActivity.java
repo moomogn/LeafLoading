@@ -23,19 +23,19 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     if (mProgress < 20) {
-                        mProgress += 2;
+                        mProgress += 1;
 
                         // 随机800ms以内刷新一次
                         mHandler.sendEmptyMessageDelayed(REFRESH_PROGRESS,
                                 new Random().nextInt(500));
                     } else if (mProgress < 60) {
-                        mProgress += 4;
+                        mProgress += 2;
 
                         // 随机800ms以内刷新一次
                         mHandler.sendEmptyMessageDelayed(REFRESH_PROGRESS,
                                 new Random().nextInt(500));
                     } else if (mProgress < 100){
-                        mProgress += 5;
+                        mProgress += 4;
                         // 随机1200ms以内刷新一次
                         mHandler.sendEmptyMessageDelayed(REFRESH_PROGRESS,
                                 new Random().nextInt(500));

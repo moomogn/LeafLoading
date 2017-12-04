@@ -64,11 +64,11 @@ public class LeafLoadingView extends View {
     // 叶子信息
     private List<Leaf> mLeafInfo;
     // 叶子默认运动周期
-    private static final int CYCLE_TIME = 3000;
+    private static final int LEAF_CYCLE_TIME = 1500;
     // 叶子默认旋转周期
-    public static final int ROTATE_TIME = 2000;
+    public static final int ROTATE_TIME = 1500;
     // 叶子运动周期
-    private static int mCycleTime = CYCLE_TIME;
+    private static int mCycleTime = LEAF_CYCLE_TIME;
     // 叶子旋转周期
     private int mRotateTime = ROTATE_TIME;
     // 叶子运动振幅 - 中
@@ -77,10 +77,12 @@ public class LeafLoadingView extends View {
     private int mApmlitudeDiff = 20;
 
     //风扇旋转周期
+    private static final int FAN_CYCLE_TIME = 2000;
     private int mFanRotate;
-    private int mFanCycleTime = CYCLE_TIME;
+    private int mFanCycleTime = FAN_CYCLE_TIME;
 
-    private int mFanOutBoundWidth = CYCLE_TIME;
+    private int mFanOutBoundWidth;
+
     //路径
     private Path mPath;
 
@@ -117,7 +119,7 @@ public class LeafLoadingView extends View {
         init(context);
     }
 
-    public void init(Context context){
+    public void init(Context context) {
         //初始化画笔
         initPaint();
         //获取叶子
@@ -168,7 +170,7 @@ public class LeafLoadingView extends View {
     private void initLeafInfo() {
         if (mLeafInfo == null) {
             mLeafInfo = new ArrayList<>();
-            mLeafInfo = LeafFactory.generateLeaves(6);
+            mLeafInfo = LeafFactory.generateLeaves(7);
         }
     }
 
@@ -214,7 +216,7 @@ public class LeafLoadingView extends View {
             mProgressPicture = new Picture();
             Canvas canvas = mProgressPicture.beginRecording(mBgWidth, mBgHeight);
             canvas.save();
-            canvas.drawPath(mPath,mProgressPaint);
+            canvas.drawPath(mPath, mProgressPaint);
             canvas.restore();
             mProgressPicture.endRecording();
         }
@@ -294,11 +296,11 @@ public class LeafLoadingView extends View {
         if (mProgress >= 100) {//完成文字
             //获取文字尺寸
             Rect rect = new Rect();
-            mTextPaint.getTextBounds(mTextComplete,-0,mTextComplete.length(),rect);
-            canvas.drawText(mTextComplete, -(rect.right-rect.left)/2, (rect.bottom - rect.top)/2,mTextPaint);
-        }else{//风扇
+            mTextPaint.getTextBounds(mTextComplete, -0, mTextComplete.length(), rect);
+            canvas.drawText(mTextComplete, -(rect.right - rect.left) / 2, (rect.bottom - rect.top) / 2, mTextPaint);
+        } else {//风扇
             //计算旋转角度
-            mFanRotate = (int) (System.currentTimeMillis() % mFanCycleTime / (float)mFanCycleTime * 360);
+            mFanRotate = (int) (System.currentTimeMillis() % mFanCycleTime / (float) mFanCycleTime * 360);
             canvas.rotate(mFanRotate, 0, 0);
             //圆和风扇间留空位置 == 2
             int dx = mBgCircleProgressRadio - 2;
@@ -318,7 +320,7 @@ public class LeafLoadingView extends View {
         long deltaT = System.currentTimeMillis() - mProgressSetTime;
 
         if (deltaT > 0 && mIntervalDrawTime > deltaT) {
-            float deltaWidth = (mProgress-mOldProgress) / mIntervalDrawTime * deltaT;
+            float deltaWidth = (mProgress - mOldProgress) / mIntervalDrawTime * deltaT;
             result = (int) ((mOldProgress + deltaWidth) / 100f * mBgWidth);
         } else {
             result = (int) (mProgress / 100f * mBgWidth);
@@ -326,6 +328,7 @@ public class LeafLoadingView extends View {
         return result;
     }
 
+    //计算树叶旋转角度
     private void generateLeafRotation(Leaf leaf, long currentTime) {
         long intervalTime = currentTime - leaf.startT;
 
@@ -336,12 +339,14 @@ public class LeafLoadingView extends View {
                     + new Random().nextInt(leaf.cycleTime);
         }
 
-        float fraction = intervalTime % mRotateTime / (float) mRotateTime;
+//        float fraction = intervalTime % mRotateTime / (float) mRotateTime;
+        float fraction = intervalTime % leaf.rotateCycle / (float) leaf.rotateCycle;
         float angle = fraction * 360;
         leaf.rotateAngle = (int) (leaf.rotateInit + leaf.rotateDirection * angle);
 
     }
 
+    //计算树叶位置
     private void generateLeafLocation(Leaf leaf, long currentTime) {
         long intervalTime = currentTime - leaf.startT;
 
@@ -393,6 +398,8 @@ public class LeafLoadingView extends View {
         private int rotateAngle;
         //旋转方向
         private int rotateDirection;
+        //旋转周期
+        private int rotateCycle;
     }
 
     private static class LeafFactory {
@@ -403,7 +410,7 @@ public class LeafLoadingView extends View {
             Leaf leaf = new Leaf();
 
             //随机值使叶子在产生时有先后顺序
-            long addTime = random.nextInt(CYCLE_TIME);
+            long addTime = random.nextInt(LEAF_CYCLE_TIME);
             leaf.startT = System.currentTimeMillis() + addTime;
             //初始旋转角度
             leaf.rotateInit = random.nextInt(360);
@@ -412,9 +419,11 @@ public class LeafLoadingView extends View {
             //随机振幅
             leaf.amplitudeType = random.nextInt(2) - 1;
             //随机周期
-            leaf.cycleTime = random.nextInt(1500) + mCycleTime;
+            leaf.cycleTime = random.nextInt(1500) + LEAF_CYCLE_TIME;
             //随机相位
-            leaf.Q = (float) (2 * Math.PI * random.nextInt(3) / 6);
+            leaf.Q = (float) (Math.PI * random.nextInt(3) / 6);
+            //随机旋转周期
+            leaf.rotateCycle = random.nextInt(1000) + ROTATE_TIME;
 
             return leaf;
         }
@@ -433,7 +442,7 @@ public class LeafLoadingView extends View {
         }
     }
 
-    public void setProgress(float progress){
+    public void setProgress(float progress) {
         this.mOldProgress = this.mProgress;
         this.mProgress = progress;
         this.mProgressSetTime = System.currentTimeMillis();
