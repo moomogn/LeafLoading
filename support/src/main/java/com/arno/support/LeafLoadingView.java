@@ -82,10 +82,17 @@ public class LeafLoadingView extends View {
 
     //风扇旋转周期
     private static final int FAN_CYCLE_TIME = 2000;
+    private static final int FAN_CYCLE_TIME_MIN = 500;
     private int mFanRotate;
     private int mFanCycleTime = FAN_CYCLE_TIME;
-
     private int mFanOutBoundWidth;
+    private int mFanOldCycleTime;
+    private float mFanIntervalAnimTime = 500;
+    private boolean bFinishFlag;
+    private long mFinishTime;
+
+    //文字
+    private static final int DEFAULT_TEXT_SIZE = 50;
 
     //路径
     private Path mPath;
@@ -165,7 +172,7 @@ public class LeafLoadingView extends View {
         }
         if (mTextPaint == null) {
             mTextPaint = new Paint(mBasePaint);
-            mTextPaint.setTextSize(40);
+            mTextPaint.setTextSize(DEFAULT_TEXT_SIZE);
             mTextPaint.setStrokeWidth(20f);
             mTextPaint.setColor(Color.WHITE);
         }
@@ -191,7 +198,7 @@ public class LeafLoadingView extends View {
     }
 
     private void initDimens() {
-        mBgHeight = 200;
+        mBgHeight = 150;
         mBgWidth = (int) (mBgHeight * 4.5f);
         mOutBoundWidth = 20;
         mFanOutBoundWidth = 10;
@@ -206,6 +213,7 @@ public class LeafLoadingView extends View {
         mBgProgressWidth = mBgWidth - 2 * mOutBoundWidth;
 
         mProgressSetTime = System.currentTimeMillis();
+        mFanRotate = (int) (System.currentTimeMillis() % mFanCycleTime / mFanCycleTime);
     }
 
     private void initPath() {
@@ -310,14 +318,24 @@ public class LeafLoadingView extends View {
         canvas.drawCircle(0, 0, mBgCircleRadio - mFanOutBoundWidth, mFanBgPaint);
 
         if (generateProgressWidth() >= mBgWidth) {//完成文字
-            //获取文字尺寸
-            Rect rect = new Rect();
-            mTextPaint.getTextBounds(mTextComplete, -0, mTextComplete.length(), rect);
-            canvas.drawText(mTextComplete, -(rect.right - rect.left) / 2, (rect.bottom - rect.top) / 2, mTextPaint);
+            if (!bFinishFlag) {//记录完成时间
+                bFinishFlag = true;
+                mFinishTime = System.currentTimeMillis();
+            }
+
+            //TODO 完成后、切换风扇文字动画
+            drawCompleteFan(canvas);
+            drawCompleteText(canvas);
+
         } else {//风扇
             //计算旋转角度
             mFanRotate = (int) (System.currentTimeMillis() % mFanCycleTime / (float) mFanCycleTime * 360);
             canvas.rotate(mFanRotate, 0, 0);
+
+            //TODO 计算旋转角度随进度增长速度变化
+            /*float fanRotate = generateFanRotate();
+            canvas.rotate(fanRotate, 0, 0);*/
+
             //圆和风扇间留空位置 == 2
             int dx = mBgCircleProgressRadio - 2;
             canvas.translate(-dx, 0);
@@ -328,6 +346,51 @@ public class LeafLoadingView extends View {
         }
 
         canvas.restore();
+    }
+
+    private void drawCompleteFan(Canvas canvas) {
+        long deltaT = System.currentTimeMillis() - mFinishTime;
+
+        if (deltaT > mFanIntervalAnimTime || !bFinishFlag) {
+            return;
+        }
+
+        canvas.save();
+        canvas.rotate(mFanRotate, 0, 0);
+
+        float dx = (int) ((mBgCircleProgressRadio - 2) * (1 - 1 / mFanIntervalAnimTime * deltaT));
+        canvas.translate(-dx, 0);
+
+        //缩放画布使得风扇中心可以绘制在圆心上
+        canvas.scale((dx * 2) / (float) mFanWidth, (dx * 2) / (float) mFanHeight);
+        canvas.drawBitmap(mFanBitmap, 0, -mFanHeight / 2, mBitmapPaint);
+        canvas.restore();
+    }
+
+    private void drawCompleteText(Canvas canvas) {
+        long deltaT = System.currentTimeMillis() - mFinishTime;
+
+        if (!bFinishFlag) {
+            return;
+        }
+
+        if (deltaT < mFanIntervalAnimTime) {
+            int textSize = (int) ((DEFAULT_TEXT_SIZE) / mFanIntervalAnimTime * deltaT);
+            mTextPaint.setTextSize(textSize);
+        }
+
+        //获取文字尺寸
+        Rect rect = new Rect();
+        mTextPaint.getTextBounds(mTextComplete, -0, mTextComplete.length(), rect);
+        canvas.drawText(mTextComplete, -(rect.right - rect.left) / 2, (rect.bottom - rect.top) / 2, mTextPaint);
+
+    }
+
+    //TODO 计算旋转角度随进度增长速度变化
+    private int generateFanRotate() {
+        int result = 0;
+
+        return result;
     }
 
     //根据属性计算应绘制的进度条长度
@@ -476,7 +539,7 @@ public class LeafLoadingView extends View {
 
     public void setProgress(float progress) {
         if (System.currentTimeMillis() - mProgressSetTime > mIntervalDrawTime
-                || progress >= 100) {
+                && System.currentTimeMillis() - mProgressSetTime > mFanIntervalAnimTime) {
             //保存旧进度
             this.mOldProgress = this.mProgress;
             //保存新进度
@@ -485,7 +548,13 @@ public class LeafLoadingView extends View {
             this.mProgressSetTime = System.currentTimeMillis();
             //添加叶子
             addLeaf();
-            Log.i(TAG, "setProgress: delta=" + (mProgress - mOldProgress));
+            //TODO 修改风扇周期
+//            speedFan();
+            //完成标志
+            if (100 > progress) {
+                bFinishFlag = false;
+            }
+
             postInvalidate();
         }
     }
@@ -506,6 +575,21 @@ public class LeafLoadingView extends View {
             }
 
             mLeafInfo.addAll(LeafFactory.generateLeaves(addNum));
+
+        }
+    }
+
+    //TODO 修改风扇周期
+    private void speedFan() {
+        this.mFanOldCycleTime = mFanCycleTime;
+
+        float deltaProgress = mProgress - mOldProgress;
+        if (deltaProgress > 0 && mLeafMax > mLeafInfo.size()) {
+            mFanCycleTime = (int) (FAN_CYCLE_TIME - 50 * deltaProgress);
+
+            if (deltaProgress > 8) {
+                mFanCycleTime = FAN_CYCLE_TIME_MIN;
+            }
 
         }
     }

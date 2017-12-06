@@ -17,34 +17,36 @@ public class MainActivity extends AppCompatActivity {
         public void handleMessage(Message msg) {
             switch (msg.what) {
                 case REFRESH_PROGRESS:
-                    if (b) {
-                        mProgress = 0;
-                        b = false;
-                    }
 
                     if (mProgress < 20) {
-                        mProgress += 1;
+                        mProgress += 3;
+
+                        // 随机800ms以内刷新一次
+                        mHandler.sendEmptyMessageDelayed(REFRESH_PROGRESS,
+                                new Random().nextInt(200));
+                    } else if (mProgress < 40) {
+                        mProgress += 4;
 
                         // 随机800ms以内刷新一次
                         mHandler.sendEmptyMessageDelayed(REFRESH_PROGRESS,
                                 new Random().nextInt(500));
                     } else if (mProgress < 60) {
-                        mProgress += 2;
+                        mProgress += 10;
 
                         // 随机800ms以内刷新一次
                         mHandler.sendEmptyMessageDelayed(REFRESH_PROGRESS,
-                                new Random().nextInt(500));
+                                new Random().nextInt(2000));
                     } else if (mProgress < 100){
-                        mProgress += 4;
+                        mProgress += 8;
                         // 随机1200ms以内刷新一次
                         mHandler.sendEmptyMessageDelayed(REFRESH_PROGRESS,
-                                new Random().nextInt(500));
+                                new Random().nextInt(200));
 
                     } else{
-                        b = true;
+//                        mProgress = 0;
                         // 随机500ms以内刷新一次
                         mHandler.sendEmptyMessageDelayed(REFRESH_PROGRESS,
-                                3000);
+                                10000);
                     }
 //                    Log.i(TAG, "handleMessage: mProgress=="+mProgress);
                     mLeafLoadingView.setProgress(mProgress);
