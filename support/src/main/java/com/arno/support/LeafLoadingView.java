@@ -14,9 +14,10 @@ import android.graphics.RectF;
 import android.graphics.drawable.PictureDrawable;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
 
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 
@@ -25,6 +26,7 @@ import java.util.Random;
  */
 
 public class LeafLoadingView extends View {
+    private static final String TAG = "AAAA";
 
     //叶子图片信息
     private Bitmap mLeafBitmap;
@@ -75,6 +77,8 @@ public class LeafLoadingView extends View {
     private int mAmplitudeMid = 50;
     // 叶子振幅差
     private int mApmlitudeDiff = 20;
+    // 叶子数量
+    private int mLeafMax = 7;
 
     //风扇旋转周期
     private static final int FAN_CYCLE_TIME = 2000;
@@ -101,7 +105,7 @@ public class LeafLoadingView extends View {
     //设置新进度时的时间
     private long mProgressSetTime;
     //进度过渡动画的绘制完成时间
-    private float mIntervalDrawTime = 200;
+    private float mIntervalDrawTime = 500;
     //进度完成时显示的文字
     private String mTextComplete = "100%";
 
@@ -169,8 +173,8 @@ public class LeafLoadingView extends View {
 
     private void initLeafInfo() {
         if (mLeafInfo == null) {
-            mLeafInfo = new ArrayList<>();
-            mLeafInfo = LeafFactory.generateLeaves(7);
+            mLeafInfo = new LinkedList<>();
+            mLeafInfo = LeafFactory.generateLeaves(1);
         }
     }
 
@@ -200,6 +204,8 @@ public class LeafLoadingView extends View {
 
         mBgProgressHeight = mBgHeight - 2 * mOutBoundWidth;
         mBgProgressWidth = mBgWidth - 2 * mOutBoundWidth;
+
+        mProgressSetTime = System.currentTimeMillis();
     }
 
     private void initPath() {
@@ -253,12 +259,12 @@ public class LeafLoadingView extends View {
         canvas.save();
         canvas.clipPath(mPath);
         canvas.translate(mBgWidth, mBgCircleRadio);
-        for (int i = 0; i < mLeafInfo.size(); i++) {
+        for (int i = 0; i < mLeafInfo.size(); ) {
             Leaf leaf = mLeafInfo.get(i);
             if (currentT > leaf.startT && leaf.startT != 0) {
                 canvas.save();
-                generateLeafLocation(leaf, currentT);
-                generateLeafRotation(leaf, currentT);
+                generateLeafLocation(leaf);
+                generateLeafRotation(leaf);
 
                 Matrix matrix = new Matrix();
                 matrix.postTranslate(leaf.x, leaf.y);
@@ -269,6 +275,16 @@ public class LeafLoadingView extends View {
 
             }
 
+            //移除已经飞到末端的树叶
+            if (isFlyAway(leaf)) {
+                mLeafInfo.remove(i);
+                if (mLeafInfo.size() == 0) {//保持至少有一片树叶
+                    Log.d(TAG, "drawLeafFly: addLeaf");
+                    mLeafInfo.add(LeafFactory.generateLeaf());
+                }
+            } else {
+                i++;
+            }
         }
         canvas.restore();
     }
@@ -293,7 +309,7 @@ public class LeafLoadingView extends View {
         mFanBgPaint.setColor(Color.parseColor(COLOR_PROGRESS));
         canvas.drawCircle(0, 0, mBgCircleRadio - mFanOutBoundWidth, mFanBgPaint);
 
-        if (mProgress >= 100) {//完成文字
+        if (generateProgressWidth() >= mBgWidth) {//完成文字
             //获取文字尺寸
             Rect rect = new Rect();
             mTextPaint.getTextBounds(mTextComplete, -0, mTextComplete.length(), rect);
@@ -329,15 +345,16 @@ public class LeafLoadingView extends View {
     }
 
     //计算树叶旋转角度
-    private void generateLeafRotation(Leaf leaf, long currentTime) {
-        long intervalTime = currentTime - leaf.startT;
+    private void generateLeafRotation(Leaf leaf) {
+        long intervalTime = System.currentTimeMillis() - leaf.startT;
 
         if (intervalTime < 0) {
             return;
-        } else if (intervalTime > leaf.cycleTime) {
-            leaf.startT = System.currentTimeMillis()
-                    + new Random().nextInt(leaf.cycleTime);
         }
+//        else if (intervalTime > leaf.cycleTime) {
+//            leaf.startT = System.currentTimeMillis()
+//                    + new Random().nextInt(leaf.cycleTime);
+//        }
 
 //        float fraction = intervalTime % mRotateTime / (float) mRotateTime;
         float fraction = intervalTime % leaf.rotateCycle / (float) leaf.rotateCycle;
@@ -347,23 +364,37 @@ public class LeafLoadingView extends View {
     }
 
     //计算树叶位置
-    private void generateLeafLocation(Leaf leaf, long currentTime) {
-        long intervalTime = currentTime - leaf.startT;
+    private void generateLeafLocation(Leaf leaf) {
+        long intervalTime = System.currentTimeMillis() - leaf.startT;
 
         if (intervalTime < 0) {
             return;
-        } else if (intervalTime > leaf.cycleTime) {
-            leaf.startT = System.currentTimeMillis()
-                    + new Random().nextInt(leaf.cycleTime);
         }
+//        else if (intervalTime > leaf.cycleTime) {
+//            leaf.startT = System.currentTimeMillis()
+//                    + new Random().nextInt(leaf.cycleTime);
+//        }
 
         float fraction = (float) intervalTime % leaf.cycleTime / leaf.cycleTime;
-        leaf.x = (int) (-mBgProgressWidth * fraction);
+        leaf.x = (int) (-mBgWidth * fraction);
         leaf.y = calLocationY(leaf);
     }
 
+    private boolean isFlyAway(Leaf leaf) {
+        boolean result = false;
+        long intervalTime = System.currentTimeMillis() - leaf.startT;
+
+        if (intervalTime < 0 || leaf.startT == 0) {
+            result = false;
+        } else if (intervalTime > leaf.cycleTime) {
+            result = true;
+        }
+
+        return result;
+    }
+
     private int calLocationY(Leaf leaf) {
-        // y = A Sin(wx+Q) + k
+        // y = A Sin(w * x + Q) + k
         int A = leaf.amplitudeType * mApmlitudeDiff + mAmplitudeMid;
         double w = ((Math.PI * 2) / (mBgProgressWidth));
         return (int) (A * Math.sin(w * leaf.x + leaf.Q));
@@ -400,6 +431,7 @@ public class LeafLoadingView extends View {
         private int rotateDirection;
         //旋转周期
         private int rotateCycle;
+
     }
 
     private static class LeafFactory {
@@ -410,7 +442,7 @@ public class LeafLoadingView extends View {
             Leaf leaf = new Leaf();
 
             //随机值使叶子在产生时有先后顺序
-            long addTime = random.nextInt(LEAF_CYCLE_TIME);
+            long addTime = random.nextInt(LEAF_CYCLE_TIME / 2);
             leaf.startT = System.currentTimeMillis() + addTime;
             //初始旋转角度
             leaf.rotateInit = random.nextInt(360);
@@ -429,7 +461,7 @@ public class LeafLoadingView extends View {
         }
 
         private static List<Leaf> generateLeaves(int size) {
-            List<Leaf> leaves = new ArrayList<>();
+            List<Leaf> leaves = new LinkedList<>();
             for (int i = 0; i < size; i++) {
                 Leaf leaf = generateLeaf();
                 leaves.add(leaf);
@@ -443,10 +475,39 @@ public class LeafLoadingView extends View {
     }
 
     public void setProgress(float progress) {
-        this.mOldProgress = this.mProgress;
-        this.mProgress = progress;
-        this.mProgressSetTime = System.currentTimeMillis();
-        postInvalidate();
+        if (System.currentTimeMillis() - mProgressSetTime > mIntervalDrawTime
+                || progress >= 100) {
+            //保存旧进度
+            this.mOldProgress = this.mProgress;
+            //保存新进度
+            this.mProgress = progress;
+            //保存设置时间
+            this.mProgressSetTime = System.currentTimeMillis();
+            //添加叶子
+            addLeaf();
+            Log.i(TAG, "setProgress: delta=" + (mProgress - mOldProgress));
+            postInvalidate();
+        }
+    }
+
+    private void addLeaf() {
+        float deltaProgress = mProgress - mOldProgress;
+        if (deltaProgress > 0 && mLeafMax > mLeafInfo.size()) {
+            int addNum = 1;
+
+            if (8 > deltaProgress && deltaProgress > 5) {
+                addNum = 2;
+            } else if (deltaProgress > 8) {
+                addNum = 3;
+            }
+
+            if (addNum > (mLeafMax - mLeafInfo.size())) {
+                addNum = mLeafMax - mLeafInfo.size();
+            }
+
+            mLeafInfo.addAll(LeafFactory.generateLeaves(addNum));
+
+        }
     }
 
 
