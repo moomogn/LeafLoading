@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="LeafLoadingView">
+        <!--背景色-->
+        <attr name="colorBg" format="color"></attr>
+        <!--进度色-->
+        <attr name="colorProgress" format="color"></attr>
+        <!--进度长度-->
+        <attr name="loadingWidth" format="dimension"></attr>
+        <!--进度与背景间隙-->
+        <attr name="progressOutBoundWidth" format="dimension"></attr>
+        <!--进度过渡动画绘制时间-->
+        <attr name="progressDrawTime" format="integer"></attr>
+        <!--风扇外层圆间隙-->
+        <attr name="fanOutBoundWidth" format="dimension"></attr>
+        <!--进度完成，风扇动画绘制时间-->
+        <attr name="fanAnimTime" format="integer"></attr>
+        <!--风扇旋转周期-->
+        <attr name="fanCycleTime" format="integer"></attr>
+        <!--叶子飞行周期-->
+        <attr name="leafCycleTime" format="integer"></attr>
+        <!--叶子旋转周期-->
+        <attr name="leafRotateTime" format="integer"></attr>
+        <!--叶子振幅-->
+        <attr name="leafAmplitudeMid" format="integer"></attr>
+        <!--叶子振幅差-->
+        <attr name="leafAmplitudeDiff" format="integer"></attr>
+        <!--最大叶子数-->
+        <attr name="leafMaxSize" format="integer"></attr>
+        <!--完成时的文字-->
+        <attr name="fanCompleteText" format="string"></attr>
+    </declare-styleable>
+</resources>
