@@ -1,12 +1,12 @@
 ### Readme
 
 LeafLoadingView 用于练习自定义 View 学习的基础部分，其中包括：
--  [自定义 View - 基础]()
--  [自定义 View - Canvas - 图形绘制]()
--  [自定义 View 实践（一）- 自定义圆点视图]()
--  [自定义 View - Canvas - 画布操作和快照]()
--  [自定义 View 实践（二）- 简易时钟]()
--  [自定义 View - Canvas - 绘制图片]()
+-  [自定义 View - 基础](http://www.jianshu.com/p/a51b82a3496d)
+-  [自定义 View - Canvas - 图形绘制](http://www.jianshu.com/p/f30f58522f1c)
+-  [自定义 View 实践（一）- 自定义圆点视图](http://www.jianshu.com/p/92c62bcb9f94)
+-  [自定义 View - Canvas - 画布操作和快照](http://www.jianshu.com/p/4794f21d514f)
+-  [自定义 View 实践（二）- 简易时钟](http://www.jianshu.com/p/4700b2ba8b5e)
+-  [自定义 View - Canvas - 绘制图片](http://www.jianshu.com/p/77daecc13dd6)
 
 ---
 
